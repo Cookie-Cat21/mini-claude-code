@@ -1,5 +1,16 @@
-# Pins the FastAPI app Vercel should deploy. Repo root also has `server.py`
-# (Fly/Docker agent HTTP API); without this, Vercel prefers `server.py` first and
-# `GET /` returns 404. See https://vercel.com/docs/frameworks/backend/fastapi
+# Vercel reads [tool.vercel].entrypoint before auto-discovering FastAPI (otherwise
+# root server.py wins). `uv lock` requires a [project] table when pyproject.toml exists.
+[project]
+name = "mini-claude-code"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.40.0",
+    "groq>=0.11.0",
+    "openai>=1.50.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+]
+
 [tool.vercel]
 entrypoint = "api.index:app"

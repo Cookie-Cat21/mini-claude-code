@@ -94,7 +94,7 @@ The `web/` folder is a **static** chat shell that calls your Fly API URL from th
 
 Keys stay on Fly; the browser never sees `GROQ_API_KEY`.
 
-**Repo-root Vercel:** Deploy from the repository root. **`pyproject.toml`** sets `[tool.vercel] entrypoint = "api.index:app"` so Vercel uses the Groq chat UI in **`api/index.py`**. Without that line, Vercel auto-detects root **`server.py`** first (the Fly/Docker agent API), which has **no `GET /`**, so the homepage shows `{"detail":"Not Found"}`. Install includes `groq` via `requirements.txt`; set **`GROQ_API_KEY`** in Environment Variables. Use your production domain (e.g. `mini-claude-code.vercel.app`) or **Visit** on the latest deployment—long preview URLs point at one deployment only.
+**Repo-root Vercel:** Deploy from the repository root. **`pyproject.toml`** defines **`[tool.vercel] entrypoint = "api.index:app"`** (so Vercel uses the Groq UI in **`api/index.py`**, not root **`server.py`**) and **`[project].dependencies`** (Vercel’s `uv` requires this table when resolving installs). **`requirements.txt`** remains for Docker/local `pip install`. Set **`GROQ_API_KEY`** in Environment Variables. Use your production domain or **Visit** on the latest deployment.
 
 ## Proof ledger (Databricks / Delta)
 
