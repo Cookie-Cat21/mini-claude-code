@@ -1,6 +1,7 @@
 import { AppleStyleCarousel } from './components/AppleStyleCarousel'
 import { GlassSurface } from './components/GlassSurface'
 import { MeshBackdrop } from './components/MeshBackdrop'
+import { MiniCodeChat } from './components/MiniCodeChat'
 
 function App() {
   return (
@@ -33,6 +34,12 @@ function App() {
               href="#stack"
             >
               Stack
+            </a>
+            <a
+              className="rounded-full px-3 py-1.5 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40"
+              href="#chat"
+            >
+              Chat
             </a>
           </nav>
           <a
@@ -87,6 +94,8 @@ function App() {
         <section id="showcase" className="mb-20 w-full scroll-mt-28">
           <AppleStyleCarousel />
         </section>
+
+        <MiniCodeChat />
 
         <section id="stack" className="w-full max-w-5xl scroll-mt-28">
           <p className="mb-2 text-center text-xs font-medium uppercase tracking-[0.2em] text-white/48">

@@ -94,7 +94,7 @@ The `web/` folder is a **static** chat shell that calls your Fly API URL from th
 
 Keys stay on Fly; the browser never sees `GROQ_API_KEY`.
 
-**Repo-root Vercel:** Deploy from the repository root. **`vercel.json`** builds **`demo-glass/`** (Vite) into **`demo-glass/dist`** and serves that as the site root, so **https://…vercel.app/** shows the glass UI. **`POST /api/chat`** is rewritten to the Python function (`api/index.py`) for Groq chat; example scripts and any client should keep calling **`/api/chat`**. The Fly/Docker agent API lives in **`fly_server.py`**. **`pyproject.toml`** pins **`[tool.vercel] entrypoint = "api.index:app"`** and **`[project].dependencies`**. **`requirements.txt`** stays for Docker/local `pip install`. Set **`GROQ_API_KEY`**. Prefer your production **`*.vercel.app`** URL—preview hashes (`*-…projects.vercel.app`) belong to one deployment each. The legacy **`web/`** shell (Fly base URL) remains an alternate static deploy if you point a Vercel project only at **`web/`**.
+**Repo-root Vercel:** Root **`vercel.json`** installs **`requirements.txt`** plus **`demo-glass`** (`npm ci`), builds the glass site into **`demo-glass/dist`** as **`outputDirectory`** (so **`/`** is the React UI), and rewrites **`POST /api/chat`** to **`api/index.py`** (Groq). **`pyproject.toml`** pins **`[tool.vercel] entrypoint = "api.index:app"`**. **`fly_server.py`** is the Fly/Docker agent API. Set **`GROQ_API_KEY`**. The glass chat panel uses same-origin **`/api/chat`** by default; use **`VITE_CHAT_API_BASE`** only if you deploy **`demo-glass/`** alone (`demo-glass/README.md`). Prefer production **`*.vercel.app`**—preview hash URLs are per deployment. The **`web/`** shell remains if you deploy only **`web/`** against a Fly API URL.
 
 ## Proof ledger (Databricks / Delta)
 
@@ -111,6 +111,7 @@ Optional **append-only audit trail** for assistant answers: store natural-langua
 |------|------|
 | `main.py` | CLI, provider routing |
 | `runtime.py` | Shared env resolution + system prompt |
+| `demo-glass/` | Glass Vite UI — built by root `vercel.json`; chat → `/api/chat` |
 | `fly_server.py` | FastAPI HTTP + SSE (Fly / Docker) |
 | `agent.py` | Anthropic agent loop |
 | `agent_openai.py` | Groq / Gemini loop (OpenAI SDK) |
