@@ -1,53 +1,51 @@
 #!/usr/bin/env python3
-"""mini-claude-code: a minimal AI coding assistant powered by Groq."""
+"""mini-claude-code: a minimal AI coding assistant (Claude, Groq, or Gemini)."""
 
 import os
 import sys
 from pathlib import Path
 
-import groq
+import anthropic
 
-from agent import run_agent
+import keys as keys_mod
+from agent import run_agent_anthropic
+from agent_openai import run_agent_openai
+from runtime import ConfigurationError, load_system_prompt, resolve_backend
 
 BANNER = """\033[36m
   ╔══════════════════════════════════════╗
   ║         mini-claude-code             ║
-  ║    AI coding assistant in ~150 LOC   ║
+  ║   Groq · Gemini · Claude (tools)     ║
   ╚══════════════════════════════════════╝
 \033[0m"""
 
-SYSTEM_PROMPT = (
-    "You are an expert software engineer and coding assistant. "
-    "Help users by reading files, writing code, running commands, and explaining concepts. "
-    "Always read relevant files before editing them to understand the existing context. "
-    "Be concise and direct. Prefer making changes incrementally."
-)
-
-
-def load_system_prompt() -> str:
-    claude_md = Path("CLAUDE.md")
-    if claude_md.exists():
-        extra = claude_md.read_text(encoding="utf-8")
-        return f"{SYSTEM_PROMPT}\n\n# Project Context (CLAUDE.md)\n{extra}"
-    return SYSTEM_PROMPT
-
 
 def main() -> None:
-    api_key = os.environ.get("GROQ_API_KEY")
-    if not api_key:
-        print("\033[31mError: GROQ_API_KEY environment variable is not set.\033[0m")
+    try:
+        backend, openai_configs = resolve_backend()
+    except ConfigurationError as e:
+        print(f"\033[31m{e}\033[0m")
         sys.exit(1)
 
-    client = groq.Groq(api_key=api_key)
     system = load_system_prompt()
     messages: list = []
 
     print(BANNER)
+    if backend == "openai":
+        n_groq = len(keys_mod.collect_api_keys("GROQ_API_KEY", "GROQ_API_KEYS"))
+        n_gem = len(keys_mod.collect_api_keys("GEMINI_API_KEY", "GEMINI_API_KEYS"))
+        print(f"  \033[32mBackend:\033[0m OpenAI-compatible ({len(openai_configs or [])} key slot(s); {n_groq} Groq, {n_gem} Gemini)")
+    else:
+        print("  \033[32mBackend:\033[0m Anthropic Claude")
 
     if Path("CLAUDE.md").exists():
         print("  \033[32m✓\033[0m Loaded CLAUDE.md\n")
 
     print("  Type your request and press Enter. Ctrl+C or 'exit' to quit.\n")
+
+    anthropic_client: anthropic.Anthropic | None = None
+    if backend == "anthropic":
+        anthropic_client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
     while True:
         try:
@@ -64,11 +62,15 @@ def main() -> None:
 
         messages.append({"role": "user", "content": user_input})
 
-        print("\n\033[1mAssistant:\033[0m ", end="", flush=True)
+        label = "Assistant" if backend == "openai" else "Claude"
+        print(f"\n\033[1m{label}:\033[0m ", end="", flush=True)
         try:
-            response = run_agent(client, messages, system)
+            if backend == "anthropic" and anthropic_client:
+                response = run_agent_anthropic(anthropic_client, messages, system)
+            else:
+                response = run_agent_openai(openai_configs or [], messages, system)
             print(response)
-        except groq.APIError as e:
+        except anthropic.APIError as e:
             print(f"\n\033[31mAPI error: {e}\033[0m")
             messages.pop()
         except Exception as e:
