@@ -100,6 +100,7 @@ Keys stay on Fly; the browser never sees `GROQ_API_KEY`.
 | `agent_openai.py` | Groq / Gemini loop (OpenAI SDK) |
 | `tools.py` | Tool definitions + execution |
 | `keys.py` | Parse single or multi API keys from env |
+| `tests/` | Unit tests (`python3 -m unittest discover …`) |
 | `Dockerfile` | Container image for Fly / Docker |
 | `fly.toml` | Fly Machines scaffold |
 | `web/index.html` | Minimal static UI for Vercel |
