@@ -11,7 +11,12 @@ from typing import List
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-app = FastAPI(title="mini-claude-code")
+app = FastAPI(
+    title="mini-claude-code",
+    openapi_url=None,
+    docs_url=None,
+    redoc_url=None,
+)
 
 
 class VercelRewritePathMiddleware(BaseHTTPMiddleware):
@@ -250,3 +255,10 @@ async def chat(req: ChatRequest):
     updated.append({"role": "user", "content": req.new_message})
     updated.append({"role": "assistant", "content": reply})
     return {"response": reply, "messages": updated}
+
+
+@app.get("/{full_path:path}")
+async def spa_fallback(full_path: str):
+    """Serve the chat shell for any other GET path (handles odd Vercel rewrite paths)."""
+
+    return HTMLResponse(_HTML)

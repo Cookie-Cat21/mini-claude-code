@@ -94,7 +94,7 @@ The `web/` folder is a **static** chat shell that calls your Fly API URL from th
 
 Keys stay on Fly; the browser never sees `GROQ_API_KEY`.
 
-**Repo-root Vercel:** If you deploy the whole repository, `vercel.json` sends traffic to `api/index.py` (FastAPI + Groq chat UI). Install includes `groq` via `requirements.txt`, and you must set **`GROQ_API_KEY`** in the Vercel project’s Environment Variables or the function will fail at runtime. If you still see `{"detail":"Not Found"}` on `/`, redeploy the latest `master` (`api/index.py` normalizes Vercel paths such as `/api` and `/api/index`). Try `/api` or `/api/index` directly to confirm the UI loads.
+**Repo-root Vercel:** If you deploy the whole repository, `vercel.json` sends traffic to `api/index.py` (FastAPI + Groq chat UI). Install includes `groq` via `requirements.txt`, and you must set **`GROQ_API_KEY`** in the Vercel project’s Environment Variables or the function will fail at runtime. Use your **production** domain (e.g. `mini-claude-code.vercel.app`) or the **Visit** button on the latest deployment—long preview URLs like `…-cookie-cat21s-projects.vercel.app` point at **one specific deployment** and may look “stuck” if you bookmark an old one.
 
 ## Proof ledger (Databricks / Delta)
 
