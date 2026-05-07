@@ -96,6 +96,15 @@ Keys stay on Fly; the browser never sees `GROQ_API_KEY`.
 
 **Repo-root Vercel:** If you deploy the whole repository, `vercel.json` sends traffic to `api/index.py` (FastAPI + Groq chat UI). Install includes `groq` via `requirements.txt`, and you must set **`GROQ_API_KEY`** in the Vercel project’s Environment Variables or the function will fail at runtime.
 
+## Proof ledger (Databricks / Delta)
+
+Optional **append-only audit trail** for assistant answers: store natural-language replies next to **evidence pointers** (Unity Catalog table names, Delta versions, job ids, query ids) in a Delta table so narratives stay tied to warehouse facts.
+
+- Python helpers live in `ledger/` (`ProofLedgerRecord`, `EvidencePointer`, `append_proof_records`).
+- Extra deps (not required for the CLI/server): `pip install -r requirements-ledger.txt` (`deltalake`, `pyarrow`).
+- Example script: `examples/proof_ledger_append.py` posts to your deployed `POST /api/chat`, then appends one ledger row (pass `--chat-url` or `VERCEL_CHAT_URL`).
+- Typical pattern in Databricks: notebook/job reads curated metrics → builds `EvidencePointer` rows → calls your Vercel URL → appends with `append_proof_records("dbfs:/...", [...])` using cluster credentials.
+
 ## Project structure
 
 | File | Role |
@@ -107,6 +116,8 @@ Keys stay on Fly; the browser never sees `GROQ_API_KEY`.
 | `agent_openai.py` | Groq / Gemini loop (OpenAI SDK) |
 | `tools.py` | Tool definitions + execution |
 | `keys.py` | Parse single or multi API keys from env |
+| `ledger/` | Optional Delta “proof ledger” (audit rows + evidence JSON) |
+| `examples/proof_ledger_append.py` | Example: Vercel chat → append ledger row |
 | `tests/` | Unit tests (`python3 -m unittest discover …`) |
 | `Dockerfile` | Container image for Fly / Docker |
 | `fly.toml` | Fly Machines scaffold |
@@ -123,6 +134,7 @@ OpenAI-format tools are derived automatically from the same schema.
 
 ```bash
 pip install -r requirements.txt
+pip install -r requirements-ledger.txt   # optional; enables Delta ledger tests
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
