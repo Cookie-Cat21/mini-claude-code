@@ -1,51 +1,64 @@
+import json
 import subprocess
 import glob as glob_module
 from pathlib import Path
 
 TOOLS = [
     {
-        "name": "read_file",
-        "description": "Read the contents of a file at the given path.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "File path to read"}
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": "Read the contents of a file at the given path.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "File path to read"}
+                },
+                "required": ["path"],
             },
-            "required": ["path"],
         },
     },
     {
-        "name": "write_file",
-        "description": "Write content to a file, creating it or overwriting if it exists.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "File path to write"},
-                "content": {"type": "string", "description": "Content to write"},
+        "type": "function",
+        "function": {
+            "name": "write_file",
+            "description": "Write content to a file, creating it or overwriting if it exists.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "File path to write"},
+                    "content": {"type": "string", "description": "Content to write"},
+                },
+                "required": ["path", "content"],
             },
-            "required": ["path", "content"],
         },
     },
     {
-        "name": "bash",
-        "description": "Run a bash/shell command and return stdout and stderr.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "command": {"type": "string", "description": "Shell command to run"}
+        "type": "function",
+        "function": {
+            "name": "bash",
+            "description": "Run a bash/shell command and return stdout and stderr.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string", "description": "Shell command to run"}
+                },
+                "required": ["command"],
             },
-            "required": ["command"],
         },
     },
     {
-        "name": "list_files",
-        "description": "List files matching a glob pattern (e.g. '**/*.py').",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "pattern": {"type": "string", "description": "Glob pattern"}
+        "type": "function",
+        "function": {
+            "name": "list_files",
+            "description": "List files matching a glob pattern (e.g. '**/*.py').",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pattern": {"type": "string", "description": "Glob pattern"}
+                },
+                "required": ["pattern"],
             },
-            "required": ["pattern"],
         },
     },
 ]

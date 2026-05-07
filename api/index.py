@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-import anthropic
+import groq
 import os
 from typing import List
 
@@ -17,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MODEL = "claude-sonnet-4-6"
+MODEL = "llama-3.3-70b-versatile"
 SYSTEM_PROMPT = (
     "You are an expert software engineer and coding assistant. "
     "Help users with coding questions, explain concepts, review code, debug issues, "
@@ -74,7 +74,7 @@ _HTML = """<!DOCTYPE html>
   <header>
     <div>
       <div class="logo">⌨ mini-claude-code</div>
-      <div class="tagline">AI coding assistant · powered by Claude</div>
+      <div class="tagline">AI coding assistant · powered by Groq</div>
     </div>
   </header>
 
@@ -119,7 +119,7 @@ _HTML = """<!DOCTYPE html>
       div.className = 'message ' + role;
       const label = document.createElement('div');
       label.className = 'msg-label';
-      label.textContent = role === 'user' ? 'You' : 'Claude';
+      label.textContent = role === 'user' ? 'You' : 'Assistant';
       div.appendChild(label);
       const body = document.createElement('div');
       if (isThinking) {
@@ -168,7 +168,7 @@ _HTML = """<!DOCTYPE html>
         appendMessage('assistant', data.response);
       } catch (err) {
         thinking.remove();
-        appendError(err.message || 'Something went wrong. Is ANTHROPIC_API_KEY set?');
+        appendError(err.message || 'Something went wrong. Is GROQ_API_KEY set?');
       }
       btn.disabled = false;
       input.focus();
@@ -195,21 +195,24 @@ async def root():
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY environment variable is not set")
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY environment variable is not set")
 
-    client = anthropic.Anthropic(api_key=api_key)
-    messages = [{"role": m.role, "content": m.content} for m in req.messages]
+    client = groq.Groq(api_key=api_key)
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages += [{"role": m.role, "content": m.content} for m in req.messages]
     messages.append({"role": "user", "content": req.new_message})
 
-    response = client.messages.create(
+    response = client.chat.completions.create(
         model=MODEL,
         max_tokens=4096,
-        system=SYSTEM_PROMPT,
         messages=messages,
     )
 
-    reply = response.content[0].text
-    messages.append({"role": "assistant", "content": reply})
-    return {"response": reply, "messages": messages}
+    reply = response.choices[0].message.content or ""
+    # Return only the non-system history to the client
+    updated = [{"role": m.role, "content": m.content} for m in req.messages]
+    updated.append({"role": "user", "content": req.new_message})
+    updated.append({"role": "assistant", "content": reply})
+    return {"response": reply, "messages": updated}

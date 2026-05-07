@@ -1,7 +1,8 @@
-import anthropic
+import json
+import groq
 from tools import TOOLS, execute_tool
 
-MODEL = "claude-sonnet-4-6"
+MODEL = "llama-3.3-70b-versatile"
 
 
 def _fmt_inputs(inputs: dict) -> str:
@@ -14,32 +15,55 @@ def _fmt_inputs(inputs: dict) -> str:
     return ", ".join(parts)
 
 
-def run_agent(client: anthropic.Anthropic, messages: list, system: str = "") -> str:
-    """Agentic loop: keep calling Claude and executing tools until end_turn."""
+def run_agent(client: groq.Groq, messages: list, system: str = "") -> str:
+    """Agentic loop: keep calling the model and executing tools until stop."""
     while True:
-        kwargs = dict(model=MODEL, max_tokens=8096, tools=TOOLS, messages=messages)
+        all_messages = []
         if system:
-            kwargs["system"] = system
+            all_messages = [{"role": "system", "content": system}] + messages
+        else:
+            all_messages = list(messages)
 
-        response = client.messages.create(**kwargs)
-        messages.append({"role": "assistant", "content": response.content})
+        response = client.chat.completions.create(
+            model=MODEL,
+            max_tokens=8096,
+            tools=TOOLS,
+            messages=all_messages,
+        )
 
-        if response.stop_reason == "end_turn":
-            for block in response.content:
-                if hasattr(block, "text"):
-                    return block.text
-            return ""
+        choice = response.choices[0]
+        message = choice.message
+        finish_reason = choice.finish_reason
 
-        # Execute all tool calls in this turn
-        tool_results = []
-        for block in response.content:
-            if block.type == "tool_use":
-                print(f"\n  \033[33m[tool]\033[0m {block.name}({_fmt_inputs(block.input)})")
-                result = execute_tool(block.name, block.input)
-                preview = result[:300] + ("..." if len(result) > 300 else "")
-                print(f"  \033[90m{preview}\033[0m")
-                tool_results.append(
-                    {"type": "tool_result", "tool_use_id": block.id, "content": result}
-                )
+        # Persist the assistant turn (tool_calls may be None)
+        assistant_entry = {"role": "assistant", "content": message.content}
+        if message.tool_calls:
+            assistant_entry["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                }
+                for tc in message.tool_calls
+            ]
+        messages.append(assistant_entry)
 
-        messages.append({"role": "user", "content": tool_results})
+        if finish_reason == "stop" or not message.tool_calls:
+            return message.content or ""
+
+        # Execute all tool calls and append results
+        for tc in message.tool_calls:
+            name = tc.function.name
+            try:
+                inputs = json.loads(tc.function.arguments)
+            except json.JSONDecodeError:
+                inputs = {}
+            print(f"\n  \033[33m[tool]\033[0m {name}({_fmt_inputs(inputs)})")
+            result = execute_tool(name, inputs)
+            preview = result[:300] + ("..." if len(result) > 300 else "")
+            print(f"  \033[90m{preview}\033[0m")
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc.id,
+                "content": result,
+            })

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""mini-claude-code: a minimal AI coding assistant powered by Claude."""
+"""mini-claude-code: a minimal AI coding assistant powered by Groq."""
 
 import os
 import sys
 from pathlib import Path
 
-import anthropic
+import groq
 
 from agent import run_agent
 
@@ -33,12 +33,12 @@ def load_system_prompt() -> str:
 
 
 def main() -> None:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
-        print("\033[31mError: ANTHROPIC_API_KEY environment variable is not set.\033[0m")
+        print("\033[31mError: GROQ_API_KEY environment variable is not set.\033[0m")
         sys.exit(1)
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = groq.Groq(api_key=api_key)
     system = load_system_prompt()
     messages: list = []
 
@@ -64,11 +64,11 @@ def main() -> None:
 
         messages.append({"role": "user", "content": user_input})
 
-        print("\n\033[1mClaude:\033[0m ", end="", flush=True)
+        print("\n\033[1mAssistant:\033[0m ", end="", flush=True)
         try:
             response = run_agent(client, messages, system)
             print(response)
-        except anthropic.APIError as e:
+        except groq.APIError as e:
             print(f"\n\033[31mAPI error: {e}\033[0m")
             messages.pop()
         except Exception as e:
