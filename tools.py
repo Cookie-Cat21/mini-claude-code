@@ -106,17 +106,5 @@ def execute_tool(name: str, inputs: dict) -> str:
 
 
 def tools_for_openai() -> list[dict]:
-    """Anthropic-style TOOLS -> OpenAI Chat Completions tool format."""
-    out = []
-    for t in TOOLS:
-        out.append(
-            {
-                "type": "function",
-                "function": {
-                    "name": t["name"],
-                    "description": t["description"],
-                    "parameters": t["input_schema"],
-                },
-            }
-        )
-    return out
+    """Return OpenAI Chat Completions tool definitions (already stored in ``TOOLS``)."""
+    return list(TOOLS)
