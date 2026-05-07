@@ -8,8 +8,27 @@ import groq
 import os
 from typing import List
 
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
 app = FastAPI(title="mini-claude-code")
 
+
+class VercelRewritePathMiddleware(BaseHTTPMiddleware):
+    """Vercel rewrites ``/(.*)`` → ``/api/index``; ASGI scope path is often ``/api/index``, not ``/``."""
+
+    PREFIX = "/api/index"
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.scope.get("path") or ""
+        if path == self.PREFIX or path.startswith(self.PREFIX + "/"):
+            suffix = path[len(self.PREFIX) :] or "/"
+            request.scope["path"] = suffix if suffix.startswith("/") else "/" + suffix
+            request.scope["raw_path"] = request.scope["path"].encode("utf-8")
+        return await call_next(request)
+
+
+app.add_middleware(VercelRewritePathMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -189,6 +208,7 @@ class ChatRequest(BaseModel):
 
 
 @app.get("/")
+@app.get("/api/index")
 async def root():
     return HTMLResponse(_HTML)
 
