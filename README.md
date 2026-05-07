@@ -46,15 +46,63 @@ export ANTHROPIC_API_KEY=...
 python3 main.py
 ```
 
+## HTTP API (Fly.io, Railway, VPS, …)
+
+Stateless JSON and **SSE** endpoints for the Groq/Gemini path (same OpenAI-style `messages` array as the CLI). **Anthropic** is not exposed over SSE; use `python3 main.py` for Claude.
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /health` | Liveness |
+| `GET /meta` | Whether `POST /chat/stream` is available for current env |
+| `POST /chat` | JSON body `{"messages":[...], "system": null}` → `{"text","messages"}` |
+| `POST /chat/stream` | **Server-Sent Events**: `data: {"type":"tool"|"assistant"|"error"|"done",...}` |
+
+**Environment (server)**
+
+- Same provider keys as the CLI (`GROQ_*`, `GEMINI_*`, `MINI_CODE_PROVIDER`).
+- `CHAT_API_SECRET` — if set, require `Authorization: Bearer <secret>` or `X-Api-Key` on `POST /chat` and `POST /chat/stream`. **`GET /health` and `GET /meta` stay public** (no secret).
+- `CORS_ORIGINS` — comma-separated list for browser calls (e.g. `https://your-app.vercel.app`). Default `*` (credentials disabled). For credentials, list explicit origins.
+
+**Run locally**
+
+```bash
+pip install -r requirements.txt
+export GROQ_API_KEY=...
+uvicorn server:app --host 0.0.0.0 --port 8080
+```
+
+**Docker / Fly**
+
+```bash
+docker build -t mini-claude-code .
+docker run -e GROQ_API_KEY=... -e CHAT_API_SECRET=... -p 8080:8080 mini-claude-code
+```
+
+Use `fly.toml` + `Dockerfile` in this repo: `fly launch` then `fly secrets set GROQ_API_KEY=...` (and optional `CHAT_API_SECRET`, `CORS_ORIGINS`).
+
+## Vercel (static UI)
+
+The `web/` folder is a **static** chat shell that calls your Fly API URL from the browser.
+
+1. Create a Vercel project and set **Root Directory** to `web` (or deploy only that folder).
+2. Open the deployed page, enter your Fly `https://…fly.dev` base URL (and optional bearer secret if you set `CHAT_API_SECRET` on Fly).
+
+Keys stay on Fly; the browser never sees `GROQ_API_KEY`.
+
 ## Project structure
 
 | File | Role |
 |------|------|
 | `main.py` | CLI, provider routing |
+| `runtime.py` | Shared env resolution + system prompt |
+| `server.py` | FastAPI HTTP + SSE |
 | `agent.py` | Anthropic agent loop |
 | `agent_openai.py` | Groq / Gemini loop (OpenAI SDK) |
 | `tools.py` | Tool definitions + execution |
 | `keys.py` | Parse single or multi API keys from env |
+| `Dockerfile` | Container image for Fly / Docker |
+| `fly.toml` | Fly Machines scaffold |
+| `web/index.html` | Minimal static UI for Vercel |
 
 ## Adding tools
 
@@ -62,6 +110,13 @@ python3 main.py
 2. Add a branch in `execute_tool`
 
 OpenAI-format tools are derived automatically from the same schema.
+
+## Testing
+
+```bash
+pip install -r requirements.txt
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+```
 
 ## CLAUDE.md
 

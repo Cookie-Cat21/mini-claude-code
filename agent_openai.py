@@ -4,12 +4,24 @@ from __future__ import annotations
 
 import json
 import random
+from collections.abc import Callable
 
 from openai import APIConnectionError, APIError, AuthenticationError, OpenAI, RateLimitError
 
 from tools import execute_tool, tools_for_openai
 
 _TOOLS = tools_for_openai()
+
+EmitFn = Callable[[dict], None] | None
+
+
+def _log_tool(name: str, inputs: dict, result: str, on_event: EmitFn) -> None:
+    preview = result[:300] + ("..." if len(result) > 300 else "")
+    if on_event:
+        on_event({"type": "tool", "name": name, "input": inputs, "result_preview": preview})
+    else:
+        print(f"\n  \033[33m[tool]\033[0m {name}({inputs!r})")
+        print(f"  \033[90m{preview}\033[0m")
 
 
 def _assistant_message_dict(msg) -> dict:
@@ -45,11 +57,14 @@ def run_agent_openai(
     messages: list,
     system: str,
     max_tokens: int = 8192,
+    on_event: EmitFn = None,
 ) -> str:
     """
     Run tool-using agent. `configs` is a list of (base_url, api_key, model), tried in order
     with random starting offset so keys are load-balanced; on retryable errors, advance to next.
     Mutates `messages` with assistant and tool messages for session history.
+    If `on_event` is set, emits dict events instead of printing tools to the terminal
+    (`type`: `tool`, `assistant`; used by the HTTP SSE API).
     """
     if not configs:
         raise ValueError("No API configurations available (missing keys?).")
@@ -62,7 +77,7 @@ def run_agent_openai(
         client = OpenAI(api_key=api_key, base_url=base_url)
 
         try:
-            return _loop_until_text(client, model, messages, system, max_tokens)
+            return _loop_until_text(client, model, messages, system, max_tokens, on_event)
         except (RateLimitError, APIConnectionError, AuthenticationError, APIError) as e:
             last_error = e
             if isinstance(e, AuthenticationError):
@@ -78,7 +93,14 @@ def run_agent_openai(
     raise RuntimeError("OpenAI agent loop failed without a specific error.")
 
 
-def _loop_until_text(client: OpenAI, model: str, messages: list, system: str, max_tokens: int) -> str:
+def _loop_until_text(
+    client: OpenAI,
+    model: str,
+    messages: list,
+    system: str,
+    max_tokens: int,
+    on_event: EmitFn = None,
+) -> str:
     while True:
         api_messages: list = []
         if system:
@@ -102,12 +124,13 @@ def _loop_until_text(client: OpenAI, model: str, messages: list, system: str, ma
                     inputs = json.loads(tc.function.arguments or "{}")
                 except json.JSONDecodeError:
                     inputs = {}
-                print(f"\n  \033[33m[tool]\033[0m {name}({inputs!r})")
                 result = execute_tool(name, inputs if isinstance(inputs, dict) else {})
-                preview = result[:300] + ("..." if len(result) > 300 else "")
-                print(f"  \033[90m{preview}\033[0m")
+                _log_tool(name, inputs if isinstance(inputs, dict) else {}, result, on_event)
                 messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
             continue
 
+        text = (msg.content or "").strip()
         messages.append({"role": "assistant", "content": msg.content or ""})
-        return (msg.content or "").strip()
+        if on_event:
+            on_event({"type": "assistant", "content": text})
+        return text
