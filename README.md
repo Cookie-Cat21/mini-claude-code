@@ -94,7 +94,7 @@ The `web/` folder is a **static** chat shell that calls your Fly API URL from th
 
 Keys stay on Fly; the browser never sees `GROQ_API_KEY`.
 
-**Repo-root Vercel:** Root **`vercel.json`** installs **`requirements.txt`** plus **`demo-glass`** (`npm ci`), builds the glass site into **`demo-glass/dist`** as **`outputDirectory`** (so **`/`** is the React UI), and rewrites **`POST /api/chat`** to **`api/index.py`** (Groq). **`pyproject.toml`** pins **`[tool.vercel] entrypoint = "api.index:app"`**. **`fly_server.py`** is the Fly/Docker agent API. Set **`GROQ_API_KEY`**. The glass chat panel uses same-origin **`/api/chat`** by default; use **`VITE_CHAT_API_BASE`** only if you deploy **`demo-glass/`** alone (`demo-glass/README.md`). Prefer production **`*.vercel.app`**—preview hash URLs are per deployment. The **`web/`** shell remains if you deploy only **`web/`** against a Fly API URL.
+**Repo-root Vercel:** Root **`vercel.json`** installs **`requirements.txt`** plus **`demo-glass`** (`npm ci`), runs **`vite build`**, then copies **`demo-glass/dist`** → repo-root **`public/`** (FastAPI on Vercel serves **`public/`** at **`/`**; **`outputDirectory`** next to Python often left **`GET /`** hitting the old HTML from **`api/index.py`**.) **`POST /api/chat`** rewrites to **`api/index.py`**. **`pyproject.toml`** pins **`[tool.vercel] entrypoint = "api.index:app"`**. **`fly_server.py`** is the Fly/Docker agent API. Set **`GROQ_API_KEY`**. Same-origin **`/api/chat`** from **`MiniCodeChat`**; use **`VITE_CHAT_API_BASE`** only for a standalone **`demo-glass/`** deploy (`demo-glass/README.md`). Dashboard **preview 403** thumbnails are often **Deployment Protection** blocking Vercel’s screenshot bot—the live URL in a normal browser should still work.
 
 ## Proof ledger (Databricks / Delta)
 
@@ -123,7 +123,7 @@ Optional **append-only audit trail** for assistant answers: store natural-langua
 | `Dockerfile` | Container image for Fly / Docker |
 | `fly.toml` | Fly Machines scaffold |
 | `web/index.html` | Minimal static UI for Vercel |
-| `vercel.json` | Root deploy: build `demo-glass/`, static output + `POST /api/chat` → Python |
+| `vercel.json` | Root deploy: Vite → `public/`, rewrite `POST /api/chat` → Python |
 
 ## Adding tools
 
