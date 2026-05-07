@@ -94,7 +94,7 @@ The `web/` folder is a **static** chat shell that calls your Fly API URL from th
 
 Keys stay on Fly; the browser never sees `GROQ_API_KEY`.
 
-**Repo-root Vercel:** Root **`vercel.json`** installs **`requirements.txt`** plus **`demo-glass`** (`npm ci`), runs **`vite build`**, then copies **`demo-glass/dist`** → repo-root **`public/`** (FastAPI on Vercel serves **`public/`** at **`/`**; **`outputDirectory`** next to Python often left **`GET /`** hitting the old HTML from **`api/index.py`**.) **`POST /api/chat`** rewrites to **`api/index.py`**. **`pyproject.toml`** pins **`[tool.vercel] entrypoint = "api.index:app"`**. **`fly_server.py`** is the Fly/Docker agent API. Set **`GROQ_API_KEY`**. Same-origin **`/api/chat`** from **`MiniCodeChat`**; use **`VITE_CHAT_API_BASE`** only for a standalone **`demo-glass/`** deploy (`demo-glass/README.md`). Dashboard **preview 403** thumbnails are often **Deployment Protection** blocking Vercel’s screenshot bot—the live URL in a normal browser should still work.
+**Repo-root Vercel:** **`vercel.json`** installs **`requirements.txt`** + **`demo-glass`** (`npm ci`), **`vite build`**, copies **`demo-glass/dist`** → **`public/`** (glass **`/`**). **`api/index.py`** is **JSON-only** (`POST /api/chat`, `GET /health`) — it must not serve HTML or catch-all **`GET`s**, or **`/assets/*.js`** breaks. **`POST /api/chat`** rewrites to the Python function. **`pyproject.toml`** → **`[tool.vercel] entrypoint = "api.index:app"`**. Set **`GROQ_API_KEY`**. **`MiniCodeChat`** uses same-origin **`/api/chat`**. Dashboard preview **403** is often **Deployment Protection** on thumbnails.
 
 ## Proof ledger (Databricks / Delta)
 
@@ -112,6 +112,7 @@ Optional **append-only audit trail** for assistant answers: store natural-langua
 | `main.py` | CLI, provider routing |
 | `runtime.py` | Shared env resolution + system prompt |
 | `demo-glass/` | Glass Vite UI — built by root `vercel.json`; chat → `/api/chat` |
+| `api/index.py` | Vercel Groq API (`POST /api/chat`); glass UI from `public/` |
 | `fly_server.py` | FastAPI HTTP + SSE (Fly / Docker) |
 | `agent.py` | Anthropic agent loop |
 | `agent_openai.py` | Groq / Gemini loop (OpenAI SDK) |

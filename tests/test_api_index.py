@@ -6,26 +6,30 @@ from starlette.testclient import TestClient
 
 
 class TestApiIndexRoutes(unittest.TestCase):
-    def test_root_and_aliases_return_html(self) -> None:
-        from api.index import app
-
-        client = TestClient(app)
-        for path in ("/", "/api", "/api/", "/api/index"):
-            with self.subTest(path=path):
-                r = client.get(path)
-                self.assertEqual(r.status_code, 200)
-                self.assertIn("text/html", r.headers.get("content-type", ""))
-                self.assertIn("mini-claude-code", r.text)
-
-    def test_unknown_get_path_returns_shell(self) -> None:
-        """Catch-all avoids FastAPI 404 when Vercel passes an unexpected scope path."""
+    def test_get_root_is_not_legacy_html_shell(self) -> None:
+        """SPA lives in ``public/``; this app must not own ``GET /``."""
 
         from api.index import app
 
         client = TestClient(app)
-        r = client.get("/vercel-might-send-this")
+        r = client.get("/")
+        self.assertEqual(r.status_code, 404)
+
+    def test_get_assets_path_not_html(self) -> None:
+        from api.index import app
+
+        client = TestClient(app)
+        r = client.get("/assets/index-deadbeef.js")
+        self.assertEqual(r.status_code, 404)
+        self.assertNotIn("text/html", r.headers.get("content-type", ""))
+
+    def test_health(self) -> None:
+        from api.index import app
+
+        client = TestClient(app)
+        r = client.get("/health")
         self.assertEqual(r.status_code, 200)
-        self.assertIn("text/html", r.headers.get("content-type", ""))
+        self.assertEqual(r.json(), {"status": "ok"})
 
     def test_post_chat_without_key_is_500_not_404(self) -> None:
         from api.index import app
