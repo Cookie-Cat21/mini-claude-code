@@ -46,6 +46,13 @@ export ANTHROPIC_API_KEY=...
 python3 main.py
 ```
 
+## Testing
+
+```bash
+pip install -r requirements.txt
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+```
+
 ## Project structure
 
 | File | Role |
