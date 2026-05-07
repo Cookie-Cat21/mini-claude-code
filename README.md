@@ -73,7 +73,7 @@ Stateless JSON and **SSE** endpoints for the Groq/Gemini path (same OpenAI-style
 ```bash
 pip install -r requirements.txt
 export GROQ_API_KEY=...
-uvicorn server:app --host 0.0.0.0 --port 8080
+uvicorn fly_server:app --host 0.0.0.0 --port 8080
 ```
 
 **Docker / Fly**
@@ -94,7 +94,7 @@ The `web/` folder is a **static** chat shell that calls your Fly API URL from th
 
 Keys stay on Fly; the browser never sees `GROQ_API_KEY`.
 
-**Repo-root Vercel:** Deploy from the repository root. **`pyproject.toml`** defines **`[tool.vercel] entrypoint = "api.index:app"`** (so Vercel uses the Groq UI in **`api/index.py`**, not root **`server.py`**) and **`[project].dependencies`** (Vercel’s `uv` requires this table when resolving installs). **`requirements.txt`** remains for Docker/local `pip install`. Set **`GROQ_API_KEY`** in Environment Variables. Use your production domain or **Visit** on the latest deployment.
+**Repo-root Vercel:** Deploy from the repository root. The Fly/Docker agent API lives in **`fly_server.py`** (not `server.py`) so Vercel’s Python scanner finds **`api/index.py`** for Groq chat. **`pyproject.toml`** still pins **`[tool.vercel] entrypoint = "api.index:app"`** and lists **`[project].dependencies`** for `uv`. **`requirements.txt`** stays for Docker/local `pip install`. Set **`GROQ_API_KEY`**. Prefer your production **`*.vercel.app`** URL—preview hashes (`*-…projects.vercel.app`) belong to one deployment each.
 
 ## Proof ledger (Databricks / Delta)
 
@@ -111,7 +111,7 @@ Optional **append-only audit trail** for assistant answers: store natural-langua
 |------|------|
 | `main.py` | CLI, provider routing |
 | `runtime.py` | Shared env resolution + system prompt |
-| `server.py` | FastAPI HTTP + SSE |
+| `fly_server.py` | FastAPI HTTP + SSE (Fly / Docker) |
 | `agent.py` | Anthropic agent loop |
 | `agent_openai.py` | Groq / Gemini loop (OpenAI SDK) |
 | `tools.py` | Tool definitions + execution |
