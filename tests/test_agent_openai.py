@@ -152,6 +152,72 @@ class TestRunAgentOpenai(unittest.TestCase):
         )
         self.assertEqual(out, "recovered")
 
+    @mock.patch("builtins.print")
+    @mock.patch("agent_openai.OpenAI")
+    @mock.patch("agent_openai.random.randrange", return_value=0)
+    def test_invalid_json_tool_arguments(self, _rand, mock_openai_cls, _print) -> None:
+        mock_client = mock.Mock()
+        mock_openai_cls.return_value = mock_client
+
+        fn = mock.Mock()
+        fn.name = "read_file"
+        fn.arguments = "not-json"
+        tc = mock.Mock()
+        tc.id = "call_x"
+        tc.function = fn
+
+        msg_tool = mock.Mock()
+        msg_tool.content = None
+        msg_tool.tool_calls = [tc]
+
+        msg_done = mock.Mock()
+        msg_done.content = "I will fix that."
+        msg_done.tool_calls = None
+
+        mock_client.chat.completions.create.side_effect = [
+            mock.Mock(choices=[mock.Mock(message=msg_tool)]),
+            mock.Mock(choices=[mock.Mock(message=msg_done)]),
+        ]
+
+        messages = [{"role": "user", "content": "Read missing"}]
+        with mock.patch("agent_openai.execute_tool") as ex:
+            out = run_agent_openai([("https://api.example/v1", "k", "m")], messages, "")
+        self.assertEqual(out, "I will fix that.")
+        ex.assert_not_called()
+        tool_msgs = [m for m in messages if m["role"] == "tool"]
+        self.assertEqual(len(tool_msgs), 1)
+        self.assertIn("invalid JSON", tool_msgs[0]["content"])
+
+    @mock.patch("agent_openai.OpenAI")
+    @mock.patch("agent_openai.random.randrange", return_value=0)
+    def test_max_tool_rounds(self, _rand, mock_openai_cls) -> None:
+        mock_client = mock.Mock()
+        mock_openai_cls.return_value = mock_client
+
+        fn = mock.Mock()
+        fn.name = "read_file"
+        fn.arguments = "{}"
+        tc = mock.Mock()
+        tc.id = "c1"
+        tc.function = fn
+
+        msg_tool = mock.Mock()
+        msg_tool.content = None
+        msg_tool.tool_calls = [tc]
+
+        mock_client.chat.completions.create.return_value = mock.Mock(choices=[mock.Mock(message=msg_tool)])
+
+        messages = [{"role": "user", "content": "Loop"}]
+        with self.assertRaises(RuntimeError) as ctx:
+            run_agent_openai(
+                [("https://api.example/v1", "k", "m")],
+                messages,
+                "",
+                max_tool_rounds=2,
+            )
+        self.assertIn("maximum agent steps", str(ctx.exception).lower())
+        self.assertEqual(mock_client.chat.completions.create.call_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

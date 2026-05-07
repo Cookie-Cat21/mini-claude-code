@@ -23,6 +23,47 @@ from runtime import ConfigurationError, load_system_prompt, resolve_backend
 
 app = FastAPI(title="mini-claude-code API", version="0.2.0")
 
+
+def _content_blocks_look_anthropic(content) -> bool:
+    """Detect Anthropic native blocks; HTTP API expects OpenAI-style messages."""
+    if not isinstance(content, list):
+        return False
+    for part in content:
+        if not isinstance(part, dict):
+            continue
+        t = part.get("type")
+        if t in ("tool_use", "tool_result"):
+            return True
+    return False
+
+
+def validate_openai_style_messages(messages: list) -> None:
+    """Reject obvious schema mismatches so clients get a clear continuation error."""
+    if not isinstance(messages, list):
+        raise ValueError("messages must be a JSON array")
+    allowed = frozenset(("system", "user", "assistant", "tool"))
+    for i, m in enumerate(messages):
+        if not isinstance(m, dict):
+            raise ValueError(f"messages[{i}] must be an object")
+        role = m.get("role")
+        if role not in allowed:
+            raise ValueError(
+                f"messages[{i}].role must be one of {sorted(allowed)!r}, got {role!r}"
+            )
+        content = m.get("content")
+        if _content_blocks_look_anthropic(content):
+            raise ValueError(
+                "Anthropic-style content blocks (e.g. type 'tool_use') are not supported on this API. "
+                "Send OpenAI-style chat messages: string content, assistant messages with tool_calls, "
+                "and tool role messages that include tool_call_id."
+            )
+        if role == "tool":
+            tid = m.get("tool_call_id")
+            if not tid or not isinstance(tid, str):
+                raise ValueError(f"messages[{i}] (role tool) must include a string tool_call_id")
+            if "content" in m and m["content"] is not None and not isinstance(m["content"], str):
+                raise ValueError(f"messages[{i}].content must be a string for role tool")
+
 _origins = os.environ.get("CORS_ORIGINS", "*").strip()
 _cors_list = [o.strip() for o in _origins.split(",") if o.strip()] or ["*"]
 # Browsers disallow credentials with wildcard origins.
@@ -88,6 +129,11 @@ async def chat_stream(body: ChatRequest, request: Request) -> StreamingResponse:
             "Set GROQ_API_KEY / GEMINI_API_KEY (or *_API_KEYS). Use python main.py for Claude.",
         )
 
+    try:
+        validate_openai_style_messages(body.messages)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
     messages = copy.deepcopy(body.messages)
     system = body.system if body.system is not None else load_system_prompt()
     q: queue.Queue = queue.Queue()
@@ -135,6 +181,11 @@ def chat_sync(body: ChatRequest, request: Request) -> dict:
             detail="This endpoint requires Groq or Gemini. "
             "Set GROQ_API_KEY / GEMINI_API_KEY (or *_API_KEYS). Use python main.py for Claude.",
         )
+
+    try:
+        validate_openai_style_messages(body.messages)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
     messages = copy.deepcopy(body.messages)
     system = body.system if body.system is not None else load_system_prompt()

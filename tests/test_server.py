@@ -44,6 +44,23 @@ class TestServer(unittest.TestCase):
         self.assertEqual(r.json()["messages"][-1]["role"], "user")
 
     @mock.patch("server.resolve_backend", return_value=("openai", [("https://x", "k", "m")]))
+    def test_chat_rejects_anthropic_blocks(self, _rb) -> None:
+        from server import app
+
+        c = TestClient(app)
+        body = {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"type": "tool_use", "name": "read_file", "id": "x", "input": {}}],
+                }
+            ]
+        }
+        r = c.post("/chat", json=body)
+        self.assertEqual(r.status_code, 422)
+        self.assertIn("OpenAI-style", r.json()["detail"])
+
+    @mock.patch("server.resolve_backend", return_value=("openai", [("https://x", "k", "m")]))
     def test_chat_secret_401(self, _rb) -> None:
         from server import app
 
