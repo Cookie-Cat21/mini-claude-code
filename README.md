@@ -43,6 +43,10 @@ export GEMINI_MODEL=gemini-2.0-flash        # optional
 # Claude (when using anthropic or auto with no Groq/Gemini keys)
 export ANTHROPIC_API_KEY=...
 
+# Cap how many model round-trips one request may take (each completion = one round; tool loops count).
+# Default 64, clamped between 1 and 10000. Applies to CLI and HTTP Groq/Gemini agent runs.
+export MINI_CODE_MAX_TOOL_ROUNDS=64   # optional
+
 python3 main.py
 ```
 
@@ -60,6 +64,7 @@ Stateless JSON and **SSE** endpoints for the Groq/Gemini path (same OpenAI-style
 **Environment (server)**
 
 - Same provider keys as the CLI (`GROQ_*`, `GEMINI_*`, `MINI_CODE_PROVIDER`).
+- `MINI_CODE_MAX_TOOL_ROUNDS` — same as CLI; limits model calls per `/chat` or `/chat/stream` request (default `64`).
 - `CHAT_API_SECRET` — if set, require `Authorization: Bearer <secret>` or `X-Api-Key` on `POST /chat` and `POST /chat/stream`. **`GET /health` and `GET /meta` stay public** (no secret).
 - `CORS_ORIGINS` — comma-separated list for browser calls (e.g. `https://your-app.vercel.app`). Default `*` (credentials disabled). For credentials, list explicit origins.
 
