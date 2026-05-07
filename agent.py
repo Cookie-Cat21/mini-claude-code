@@ -14,7 +14,7 @@ def _fmt_inputs(inputs: dict) -> str:
     return ", ".join(parts)
 
 
-def run_agent(client: anthropic.Anthropic, messages: list, system: str = "") -> str:
+def run_agent_anthropic(client: anthropic.Anthropic, messages: list, system: str = "") -> str:
     """Agentic loop: keep calling Claude and executing tools until end_turn."""
     while True:
         kwargs = dict(model=MODEL, max_tokens=8096, tools=TOOLS, messages=messages)
