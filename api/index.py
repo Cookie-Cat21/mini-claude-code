@@ -37,7 +37,14 @@ class VercelRewritePathMiddleware(BaseHTTPMiddleware):
         request.scope["raw_path"] = path.encode("utf-8")
 
     async def dispatch(self, request: Request, call_next):
-        self._rewrite_scope_path(request)
+        path = request.scope.get("path") or ""
+        method = request.method.upper()
+        # Vercel often routes invocations to `/api/index`; POST must reach `/api/chat`, not `/`.
+        if method == "POST" and path in (self.INDEX_PREFIX, self.INDEX_PREFIX + "/"):
+            request.scope["path"] = "/api/chat"
+            request.scope["raw_path"] = b"/api/chat"
+        elif method == "GET":
+            self._rewrite_scope_path(request)
         return await call_next(request)
 
 

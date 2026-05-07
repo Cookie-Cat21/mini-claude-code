@@ -36,6 +36,17 @@ class TestApiIndexRoutes(unittest.TestCase):
         data = r.json()
         self.assertIn("GROQ_API_KEY", data.get("detail", ""))
 
+    def test_post_api_index_aliases_to_chat(self) -> None:
+        """When Vercel invokes POST on the function URL, path may be /api/index."""
+
+        from api.index import app
+
+        client = TestClient(app)
+        r = client.post("/api/index", json={"messages": [], "new_message": "hi"})
+        self.assertEqual(r.status_code, 500)
+        data = r.json()
+        self.assertIn("GROQ_API_KEY", data.get("detail", ""))
+
 
 if __name__ == "__main__":
     unittest.main()

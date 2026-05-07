@@ -94,7 +94,7 @@ The `web/` folder is a **static** chat shell that calls your Fly API URL from th
 
 Keys stay on Fly; the browser never sees `GROQ_API_KEY`.
 
-**Repo-root Vercel:** Deploy from the repository root. The Fly/Docker agent API lives in **`fly_server.py`** (not `server.py`) so Vercel’s Python scanner finds **`api/index.py`** for Groq chat. **`pyproject.toml`** still pins **`[tool.vercel] entrypoint = "api.index:app"`** and lists **`[project].dependencies`** for `uv`. **`requirements.txt`** stays for Docker/local `pip install`. Set **`GROQ_API_KEY`**. Prefer your production **`*.vercel.app`** URL—preview hashes (`*-…projects.vercel.app`) belong to one deployment each.
+**Repo-root Vercel:** Deploy from the repository root. **`vercel.json`** builds **`demo-glass/`** (Vite) into **`demo-glass/dist`** and serves that as the site root, so **https://…vercel.app/** shows the glass UI. **`POST /api/chat`** is rewritten to the Python function (`api/index.py`) for Groq chat; example scripts and any client should keep calling **`/api/chat`**. The Fly/Docker agent API lives in **`fly_server.py`**. **`pyproject.toml`** pins **`[tool.vercel] entrypoint = "api.index:app"`** and **`[project].dependencies`**. **`requirements.txt`** stays for Docker/local `pip install`. Set **`GROQ_API_KEY`**. Prefer your production **`*.vercel.app`** URL—preview hashes (`*-…projects.vercel.app`) belong to one deployment each. The legacy **`web/`** shell (Fly base URL) remains an alternate static deploy if you point a Vercel project only at **`web/`**.
 
 ## Proof ledger (Databricks / Delta)
 
@@ -122,6 +122,7 @@ Optional **append-only audit trail** for assistant answers: store natural-langua
 | `Dockerfile` | Container image for Fly / Docker |
 | `fly.toml` | Fly Machines scaffold |
 | `web/index.html` | Minimal static UI for Vercel |
+| `vercel.json` | Root deploy: build `demo-glass/`, static output + `POST /api/chat` → Python |
 
 ## Adding tools
 
