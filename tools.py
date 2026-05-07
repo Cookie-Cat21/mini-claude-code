@@ -90,3 +90,20 @@ def execute_tool(name: str, inputs: dict) -> str:
         return "\n".join(sorted(matches)) if matches else "No files found."
 
     return f"Unknown tool: {name}"
+
+
+def tools_for_openai() -> list[dict]:
+    """Anthropic-style TOOLS -> OpenAI Chat Completions tool format."""
+    out = []
+    for t in TOOLS:
+        out.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": t["name"],
+                    "description": t["description"],
+                    "parameters": t["input_schema"],
+                },
+            }
+        )
+    return out
