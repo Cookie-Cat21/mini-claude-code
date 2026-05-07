@@ -1,5 +1,5 @@
-# Vercel reads [tool.vercel].entrypoint before auto-discovering FastAPI (otherwise
-# root server.py wins). `uv lock` requires a [project] table when pyproject.toml exists.
+# [tool.vercel] pins the Groq chat app; [project] satisfies `uv lock` on Vercel.
+# Fly/Docker load fly_server.py — root server.py was renamed so Vercel auto-scan hits api/index.py.
 [project]
 name = "mini-claude-code"
 version = "0.1.0"
