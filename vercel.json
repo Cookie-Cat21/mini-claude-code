@@ -1,6 +1,5 @@
 {
   "installCommand": "pip install -r requirements.txt && cd demo-glass && npm ci",
-  "buildCommand": "cd demo-glass && npm run build",
-  "outputDirectory": "demo-glass/dist",
+  "buildCommand": "cd demo-glass && npm run build && rm -rf ../public && mkdir -p ../public && cp -r dist/* ../public/",
   "rewrites": [{ "source": "/api/chat", "destination": "/api/index" }]
 }

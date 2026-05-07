@@ -1,6 +1,6 @@
 # demo-glass
 
-Glass-style **Vite + React** shell. **Repo-root `vercel.json`** builds this folder to **`demo-glass/dist`** as the static site root and rewrites **`POST /api/chat`** to **`api/index.py`** (Groq).
+Glass-style **Vite + React** shell. **Repo-root `vercel.json`** builds this folder, then copies **`dist/`** to repo-root **`public/`** so Vercel serves the React **`/`** next to **`api/index.py`** (Groq).
 
 The **`MiniCodeChat`** panel posts to **`/api/chat`** on the **same origin** (no env vars on unified deploy).
 
