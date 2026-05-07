@@ -15,16 +15,28 @@ app = FastAPI(title="mini-claude-code")
 
 
 class VercelRewritePathMiddleware(BaseHTTPMiddleware):
-    """Vercel rewrites ``/(.*)`` → ``/api/index``; ASGI scope path is often ``/api/index``, not ``/``."""
+    """Normalize paths when ``vercel.json`` sends traffic through ``api/index``.
 
-    PREFIX = "/api/index"
+    Depending on runtime version, scope ``path`` may be ``/``, ``/api``, ``/api/index``, etc.
+    ``GET /`` must reach the HTML shell and ``POST /api/chat`` the Groq handler.
+    """
+
+    INDEX_PREFIX = "/api/index"
+
+    def _rewrite_scope_path(self, request: Request) -> None:
+        path = request.scope.get("path") or ""
+        if path in ("/api", "/api/"):
+            path = "/"
+        elif path == self.INDEX_PREFIX or path.startswith(self.INDEX_PREFIX + "/"):
+            suffix = path[len(self.INDEX_PREFIX) :] or "/"
+            path = suffix if suffix.startswith("/") else "/" + suffix
+        else:
+            return
+        request.scope["path"] = path
+        request.scope["raw_path"] = path.encode("utf-8")
 
     async def dispatch(self, request: Request, call_next):
-        path = request.scope.get("path") or ""
-        if path == self.PREFIX or path.startswith(self.PREFIX + "/"):
-            suffix = path[len(self.PREFIX) :] or "/"
-            request.scope["path"] = suffix if suffix.startswith("/") else "/" + suffix
-            request.scope["raw_path"] = request.scope["path"].encode("utf-8")
+        self._rewrite_scope_path(request)
         return await call_next(request)
 
 
@@ -208,6 +220,8 @@ class ChatRequest(BaseModel):
 
 
 @app.get("/")
+@app.get("/api")
+@app.get("/api/")
 @app.get("/api/index")
 async def root():
     return HTMLResponse(_HTML)
