@@ -1,0 +1,5 @@
+# Pins the FastAPI app Vercel should deploy. Repo root also has `server.py`
+# (Fly/Docker agent HTTP API); without this, Vercel prefers `server.py` first and
+# `GET /` returns 404. See https://vercel.com/docs/frameworks/backend/fastapi
+[tool.vercel]
+entrypoint = "api.index:app"

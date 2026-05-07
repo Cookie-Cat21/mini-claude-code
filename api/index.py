@@ -20,11 +20,7 @@ app = FastAPI(
 
 
 class VercelRewritePathMiddleware(BaseHTTPMiddleware):
-    """Normalize paths when ``vercel.json`` sends traffic through ``api/index``.
-
-    Depending on runtime version, scope ``path`` may be ``/``, ``/api``, ``/api/index``, etc.
-    ``GET /`` must reach the HTML shell and ``POST /api/chat`` the Groq handler.
-    """
+    """Normalize ASGI paths some CDN/proxy setups still send (e.g. ``/api``, ``/api/index``)."""
 
     INDEX_PREFIX = "/api/index"
 
