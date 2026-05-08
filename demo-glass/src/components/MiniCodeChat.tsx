@@ -49,14 +49,12 @@ export function MiniCodeChat() {
   }, [chatUrl, input, messages, pending])
 
   return (
-    <section id="chat" className="mb-20 w-full max-w-2xl scroll-mt-28">
-      <p className="mb-2 text-center text-xs font-medium uppercase tracking-[0.2em] text-white/48">
-        mini-claude-code
-      </p>
-      <h2 className="mb-6 text-center text-lg font-semibold tracking-tight text-white/90 md:text-xl">
-        Glass shell → Groq
-      </h2>
-      <GlassSurface className="flex flex-col gap-4 p-5 md:p-6">
+    <section
+      id="chat"
+      className="flex w-full max-w-2xl min-h-0 flex-1 flex-col justify-center"
+      aria-label="Chat"
+    >
+      <GlassSurface className="flex max-h-[min(85dvh,40rem)] min-h-[min(60dvh,28rem)] flex-col gap-4 p-5 md:p-6">
         <p className="text-xs text-white/45">
           {base ? (
             <>
@@ -70,7 +68,7 @@ export function MiniCodeChat() {
             </>
           )}
         </p>
-        <div className="max-h-[min(40vh,22rem)] space-y-3 overflow-y-auto rounded-xl bg-black/25 p-3 text-sm ring-1 ring-white/10">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto rounded-xl bg-black/25 p-3 text-sm ring-1 ring-white/10">
           {messages.length === 0 ? (
             <p className="text-white/45">Ask anything about code…</p>
           ) : (
