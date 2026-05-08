@@ -1,15 +1,46 @@
-"""mini-claude-code web: FastAPI wrapper for Vercel deployment."""
+"""Vercel Groq JSON API only.
 
+The glass SPA is served from repo-root ``public/`` (built from ``demo-glass/``).
+This module must not serve HTML on ``GET /`` or catch-all paths — doing so breaks
+``/assets/*.js`` (wrong MIME) and hides the React UI.
+"""
+
+from __future__ import annotations
+
+import os
+from typing import List
+
+import groq
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
-import groq
-import os
-from typing import List
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
-app = FastAPI(title="mini-claude-code")
+app = FastAPI(
+    title="mini-claude-code",
+    openapi_url=None,
+    docs_url=None,
+    redoc_url=None,
+)
 
+
+class VercelPostPathMiddleware(BaseHTTPMiddleware):
+    """Map POST ``/api/index`` (function URL) → ``POST /api/chat``."""
+
+    PREFIX = "/api/index"
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.scope.get("path") or ""
+        method = request.method.upper()
+        if method == "POST" and path in (self.PREFIX, self.PREFIX + "/"):
+            request.scope["path"] = "/api/chat"
+            request.scope["raw_path"] = b"/api/chat"
+        return await call_next(request)
+
+
+app.add_middleware(VercelPostPathMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -43,6 +74,8 @@ async def root():
 
 @app.get("/health")
 async def health():
+    """Tiny probe for deploy smoke checks (optional)."""
+
     return {"status": "ok"}
 
 

@@ -1,4 +1,6 @@
 import anthropic
+
+from runtime import max_agent_rounds
 from tools import TOOLS, execute_tool
 
 MODEL = "claude-sonnet-4-6"
@@ -14,9 +16,31 @@ def _fmt_inputs(inputs: dict) -> str:
     return ", ".join(parts)
 
 
-def run_agent_anthropic(client: anthropic.Anthropic, messages: list, system: str = "") -> str:
+def _text_from_assistant_content(content: list) -> str:
+    parts: list[str] = []
+    for block in content:
+        if getattr(block, "type", None) == "text":
+            parts.append(getattr(block, "text", "") or "")
+    return "".join(parts).strip()
+
+
+def run_agent_anthropic(
+    client: anthropic.Anthropic,
+    messages: list,
+    system: str = "",
+    max_tool_rounds: int | None = None,
+) -> str:
     """Agentic loop: keep calling Claude and executing tools until end_turn."""
+    cap = max_tool_rounds if max_tool_rounds is not None else max_agent_rounds()
+    rounds = 0
     while True:
+        rounds += 1
+        if rounds > cap:
+            raise RuntimeError(
+                f"Exceeded maximum agent steps ({cap} model calls). "
+                "Increase MINI_CODE_MAX_TOOL_ROUNDS if needed."
+            )
+
         kwargs = dict(model=MODEL, max_tokens=8096, tools=TOOLS, messages=messages)
         if system:
             kwargs["system"] = system
@@ -25,12 +49,8 @@ def run_agent_anthropic(client: anthropic.Anthropic, messages: list, system: str
         messages.append({"role": "assistant", "content": response.content})
 
         if response.stop_reason == "end_turn":
-            for block in response.content:
-                if hasattr(block, "text"):
-                    return block.text
-            return ""
+            return _text_from_assistant_content(response.content)
 
-        # Execute all tool calls in this turn
         tool_results = []
         for block in response.content:
             if block.type == "tool_use":
@@ -42,4 +62,11 @@ def run_agent_anthropic(client: anthropic.Anthropic, messages: list, system: str
                     {"type": "tool_result", "tool_use_id": block.id, "content": result}
                 )
 
-        messages.append({"role": "user", "content": tool_results})
+        if tool_results:
+            messages.append({"role": "user", "content": tool_results})
+            continue
+
+        partial = _text_from_assistant_content(response.content)
+        if partial:
+            return partial
+        return ""

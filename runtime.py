@@ -23,6 +23,16 @@ class ConfigurationError(Exception):
     """Invalid or missing API configuration."""
 
 
+def max_agent_rounds() -> int:
+    """Cap API round-trips in the tool loop (each model completion counts as one round)."""
+    raw = os.environ.get("MINI_CODE_MAX_TOOL_ROUNDS", "64").strip()
+    try:
+        n = int(raw)
+    except ValueError:
+        return 64
+    return max(1, min(n, 10_000))
+
+
 def load_system_prompt() -> str:
     claude_md = Path("CLAUDE.md")
     if claude_md.exists():

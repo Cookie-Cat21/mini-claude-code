@@ -43,6 +43,10 @@ export GEMINI_MODEL=gemini-2.0-flash        # optional
 # Claude (when using anthropic or auto with no Groq/Gemini keys)
 export ANTHROPIC_API_KEY=...
 
+# Cap how many model round-trips one request may take (each completion = one round; tool loops count).
+# Default 64, clamped between 1 and 10000. Applies to CLI and HTTP Groq/Gemini agent runs.
+export MINI_CODE_MAX_TOOL_ROUNDS=64   # optional
+
 python3 main.py
 ```
 
@@ -60,6 +64,7 @@ Stateless JSON and **SSE** endpoints for the Groq/Gemini path (same OpenAI-style
 **Environment (server)**
 
 - Same provider keys as the CLI (`GROQ_*`, `GEMINI_*`, `MINI_CODE_PROVIDER`).
+- `MINI_CODE_MAX_TOOL_ROUNDS` — same as CLI; limits model calls per `/chat` or `/chat/stream` request (default `64`).
 - `CHAT_API_SECRET` — if set, require `Authorization: Bearer <secret>` or `X-Api-Key` on `POST /chat` and `POST /chat/stream`. **`GET /health` and `GET /meta` stay public** (no secret).
 - `CORS_ORIGINS` — comma-separated list for browser calls (e.g. `https://your-app.vercel.app`). Default `*` (credentials disabled). For credentials, list explicit origins.
 
@@ -68,7 +73,7 @@ Stateless JSON and **SSE** endpoints for the Groq/Gemini path (same OpenAI-style
 ```bash
 pip install -r requirements.txt
 export GROQ_API_KEY=...
-uvicorn server:app --host 0.0.0.0 --port 8080
+uvicorn fly_server:app --host 0.0.0.0 --port 8080
 ```
 
 **Docker / Fly**
@@ -89,21 +94,37 @@ The `web/` folder is a **static** chat shell that calls your Fly API URL from th
 
 Keys stay on Fly; the browser never sees `GROQ_API_KEY`.
 
+**Repo-root Vercel:** **`vercel.json`** installs **`requirements.txt`** + **`demo-glass`** (`npm ci`), **`vite build`**, copies **`demo-glass/dist`** → **`public/`** (glass **`/`**). **`api/index.py`** is **JSON-only** (`POST /api/chat`, `GET /health`) — it must not serve HTML or catch-all **`GET`s**, or **`/assets/*.js`** breaks. **`POST /api/chat`** rewrites to the Python function. **`pyproject.toml`** → **`[tool.vercel] entrypoint = "api.index:app"`**. Set **`GROQ_API_KEY`**. **`MiniCodeChat`** uses same-origin **`/api/chat`**. Dashboard preview **403** is often **Deployment Protection** on thumbnails.
+
+## Proof ledger (Databricks / Delta)
+
+Optional **append-only audit trail** for assistant answers: store natural-language replies next to **evidence pointers** (Unity Catalog table names, Delta versions, job ids, query ids) in a Delta table so narratives stay tied to warehouse facts.
+
+- Python helpers live in `ledger/` (`ProofLedgerRecord`, `EvidencePointer`, `append_proof_records`).
+- Extra deps (not required for the CLI/server): `pip install -r requirements-ledger.txt` (`deltalake`, `pyarrow`).
+- Example script: `examples/proof_ledger_append.py` posts to your deployed `POST /api/chat`, then appends one ledger row (pass `--chat-url` or `VERCEL_CHAT_URL`).
+- Typical pattern in Databricks: notebook/job reads curated metrics → builds `EvidencePointer` rows → calls your Vercel URL → appends with `append_proof_records("dbfs:/...", [...])` using cluster credentials.
+
 ## Project structure
 
 | File | Role |
 |------|------|
 | `main.py` | CLI, provider routing |
 | `runtime.py` | Shared env resolution + system prompt |
-| `server.py` | FastAPI HTTP + SSE |
+| `demo-glass/` | Glass Vite UI — built by root `vercel.json`; chat → `/api/chat` |
+| `api/index.py` | Vercel Groq API (`POST /api/chat`); glass UI from `public/` |
+| `fly_server.py` | FastAPI HTTP + SSE (Fly / Docker) |
 | `agent.py` | Anthropic agent loop |
 | `agent_openai.py` | Groq / Gemini loop (OpenAI SDK) |
 | `tools.py` | Tool definitions + execution |
 | `keys.py` | Parse single or multi API keys from env |
+| `ledger/` | Optional Delta “proof ledger” (audit rows + evidence JSON) |
+| `examples/proof_ledger_append.py` | Example: Vercel chat → append ledger row |
 | `tests/` | Unit tests (`python3 -m unittest discover …`) |
 | `Dockerfile` | Container image for Fly / Docker |
 | `fly.toml` | Fly Machines scaffold |
 | `web/index.html` | Minimal static UI for Vercel |
+| `vercel.json` | Root deploy: Vite → `public/`, rewrite `POST /api/chat` → Python |
 
 ## Adding tools
 
@@ -116,6 +137,7 @@ OpenAI-format tools are derived automatically from the same schema.
 
 ```bash
 pip install -r requirements.txt
+pip install -r requirements-ledger.txt   # optional; enables Delta ledger tests
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 

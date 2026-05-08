@@ -1,3 +1,13 @@
+# demo-glass
+
+Glass-style **Vite + React** shell. **Repo-root `vercel.json`** builds this folder, then copies **`dist/`** to repo-root **`public/`** so Vercel serves the React **`/`** next to **`api/index.py`** (Groq).
+
+The **`MiniCodeChat`** panel posts to **`/api/chat`** on the **same origin** (no env vars on unified deploy).
+
+**Standalone deploy:** another Vercel project with Root Directory **`demo-glass`** → set **`VITE_CHAT_API_BASE`** to your API origin (see `.env.example`).
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

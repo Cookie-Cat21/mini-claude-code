@@ -1,0 +1,16 @@
+# [tool.vercel] pins the Groq chat app; [project] satisfies `uv lock` on Vercel.
+# Fly/Docker load fly_server.py — root server.py was renamed so Vercel auto-scan hits api/index.py.
+[project]
+name = "mini-claude-code"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.40.0",
+    "groq>=0.11.0",
+    "openai>=1.50.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+]
+
+[tool.vercel]
+entrypoint = "api.index:app"

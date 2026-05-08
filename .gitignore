@@ -9,3 +9,6 @@ venv/
 *.egg-info/
 dist/
 build/
+
+# Vercel: demo-glass build copies dist → repo-root public/ (do not commit)
+/public/
