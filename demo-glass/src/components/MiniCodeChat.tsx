@@ -1,121 +1,146 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { GlassSurface } from './GlassSurface'
+import {
+  ClaudeChatInput,
+} from './ClaudeChatInput'
+import { formatFileSize, type ChatSendPayload } from './chatComposerTypes'
 
 type ChatMsg = { role: 'user' | 'assistant'; content: string }
 
-/** Same-origin `/api/chat` on unified Vercel; optional absolute API host for split deploys. */
 function apiBase(): string {
   const raw = import.meta.env.VITE_CHAT_API_BASE as string | undefined
   if (raw && raw.trim()) return raw.replace(/\/$/, '')
   return ''
 }
 
+async function buildNewMessage(payload: ChatSendPayload): Promise<string | null> {
+  const parts: string[] = []
+
+  if (payload.isThinkingEnabled) {
+    parts.push('Think through this step-by-step before you answer.')
+  }
+
+  for (const p of payload.pastedContent) {
+    parts.push(`[Pasted content]\n${p.content}`)
+  }
+
+  for (const af of payload.files) {
+    const { file } = af
+    const name = file.name
+    const size = formatFileSize(file.size)
+    const textish =
+      file.type.startsWith('text/') ||
+      /\.(txt|md|json|ts|tsx|js|jsx|mjs|cjs|py|css|html|yml|yaml|csv|rs|go|java|kt)$/i.test(
+        name
+      )
+
+    if (textish) {
+      try {
+        let t = await file.text()
+        if (t.length > 48_000) t = `${t.slice(0, 48_000)}\n…[truncated]`
+        parts.push(`[File: ${name} (${size})]\n${t}`)
+      } catch {
+        parts.push(`[Attached file: ${name} (${size})]`)
+      }
+    } else if (file.type.startsWith('image/')) {
+      parts.push(
+        `[Attached image: ${name} (${size}). Describe in text what you want inferred from it — the chat API sends text only.]`
+      )
+    } else {
+      parts.push(`[Attached file: ${name} (${size})]`)
+    }
+  }
+
+  const userLine = payload.message.trim()
+  if (userLine) parts.push(userLine)
+
+  const out = parts.join('\n\n').trim()
+  return out.length > 0 ? out : null
+}
+
 export function MiniCodeChat() {
   const base = useMemo(() => apiBase(), [])
   const chatUrl = base ? `${base}/api/chat` : '/api/chat'
   const [messages, setMessages] = useState<ChatMsg[]>([])
-  const [input, setInput] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const sendingRef = useRef(false)
 
-  const send = useCallback(async () => {
-    const text = input.trim()
-    if (!text || pending) return
-    setError(null)
-    setPending(true)
-    setInput('')
-    try {
-      const res = await fetch(chatUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, new_message: text }),
-      })
-      const data = (await res.json().catch(() => ({}))) as {
-        detail?: string
-        response?: string
-        messages?: ChatMsg[]
+  const onSendMessage = useCallback(
+    async (payload: ChatSendPayload) => {
+      if (sendingRef.current) return
+      sendingRef.current = true
+      setPending(true)
+      setError(null)
+      try {
+        const text = await buildNewMessage(payload)
+        if (!text) return
+
+        const res = await fetch(chatUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages, new_message: text }),
+        })
+        const data = (await res.json().catch(() => ({}))) as {
+          detail?: string
+          response?: string
+          messages?: ChatMsg[]
+        }
+        if (!res.ok) {
+          throw new Error(data.detail ?? `HTTP ${res.status}`)
+        }
+        if (Array.isArray(data.messages)) {
+          setMessages(data.messages)
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Request failed')
+      } finally {
+        sendingRef.current = false
+        setPending(false)
       }
-      if (!res.ok) {
-        throw new Error(data.detail ?? `HTTP ${res.status}`)
-      }
-      if (Array.isArray(data.messages)) {
-        setMessages(data.messages)
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Request failed')
-    } finally {
-      setPending(false)
-    }
-  }, [chatUrl, input, messages, pending])
+    },
+    [chatUrl, messages]
+  )
 
   return (
     <section
       id="chat"
-      className="flex w-full max-w-2xl min-h-0 flex-1 flex-col justify-center"
+      className="flex w-full max-w-2xl min-h-0 flex-1 flex-col justify-center gap-5"
       aria-label="Chat"
     >
-      <GlassSurface className="flex max-h-[min(85dvh,40rem)] min-h-[min(60dvh,28rem)] flex-col gap-4 p-5 md:p-6">
-        <p className="text-xs text-white/45">
-          {base ? (
-            <>
-              API: <code className="rounded bg-white/10 px-1">{chatUrl}</code>
-            </>
-          ) : (
-            <>
-              Same-origin <code className="rounded bg-white/10 px-1">POST /api/chat</code>{' '}
-              (root Vercel deploy). For a standalone SPA, set{' '}
-              <code className="rounded bg-white/10 px-1">VITE_CHAT_API_BASE</code>.
-            </>
-          )}
-        </p>
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto rounded-xl bg-black/25 p-3 text-sm ring-1 ring-white/10">
+      <GlassSurface className="flex max-h-[min(42dvh,22rem)] min-h-[12rem] flex-col overflow-hidden p-4 md:p-5">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto custom-scrollbar text-sm">
           {messages.length === 0 ? (
-            <p className="text-white/45">Ask anything about code…</p>
+            <p className="py-8 text-center text-white/40">
+              Ask anything about code…
+            </p>
           ) : (
             messages.map((m, i) => (
               <div
                 key={`${i}-${m.role}`}
                 className={
                   m.role === 'user'
-                    ? 'ml-8 rounded-lg bg-white/12 px-3 py-2 text-white/95'
-                    : 'mr-8 rounded-lg bg-white/6 px-3 py-2 text-white/85'
+                    ? 'ml-6 rounded-xl bg-white/12 px-3 py-2.5 text-white/95'
+                    : 'mr-6 rounded-xl bg-white/6 px-3 py-2.5 text-white/88'
                 }
               >
-                <span className="mb-1 block text-[10px] uppercase tracking-wider text-white/40">
+                <span className="mb-1 block text-[10px] uppercase tracking-wider text-white/38">
                   {m.role}
                 </span>
                 <div className="whitespace-pre-wrap">{m.content}</div>
               </div>
             ))
           )}
-        </div>
-        {error ? (
-          <p className="text-sm text-red-300/95">{error}</p>
-        ) : null}
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                void send()
-              }
-            }}
-            placeholder="Message… (Enter send, Shift+Enter newline)"
-            rows={2}
-            className="min-h-[44px] flex-1 resize-none rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/35 focus:border-violet-400/50 focus:outline-none focus:ring-1 focus:ring-violet-400/30"
-          />
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => void send()}
-            className="rounded-xl bg-white/90 px-5 py-2.5 text-sm font-semibold text-neutral-950 shadow-lg shadow-black/20 ring-1 ring-white/25 transition hover:bg-white disabled:opacity-45"
-          >
-            {pending ? '…' : 'Send'}
-          </button>
+          {pending ? (
+            <p className="text-sm text-white/45 italic">Thinking…</p>
+          ) : null}
+          {error ? (
+            <p className="text-sm text-red-300/95">{error}</p>
+          ) : null}
         </div>
       </GlassSurface>
+
+      <ClaudeChatInput disabled={pending} onSendMessage={onSendMessage} />
     </section>
   )
 }
