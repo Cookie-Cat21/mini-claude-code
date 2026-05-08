@@ -13,6 +13,7 @@ from typing import List
 import groq
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -64,6 +65,11 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     messages: List[Message]
     new_message: str
+
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="https://mini-claude-glass.vercel.app", status_code=302)
 
 
 @app.get("/health")
