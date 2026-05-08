@@ -17,6 +17,11 @@ import {
   Loader2,
   Check,
   Archive,
+  PenLine,
+  GraduationCap,
+  Brackets,
+  Home,
+  type LucideIcon,
 } from 'lucide-react'
 import { formatFileSize } from './chatComposerTypes'
 import type { AttachedFile, ChatModel, ChatSendPayload, PastedSnippet } from './chatComposerTypes'
@@ -221,6 +226,28 @@ const DEFAULT_MODELS: ChatModel[] = [
   { id: 'haiku-4.5', name: 'Haiku 4.5', description: 'Fastest for quick answers' },
 ]
 
+const QUICK_ACTIONS: { id: string; label: string; icon: LucideIcon; prompt: string }[] = [
+  { id: 'write', label: 'Write', icon: PenLine, prompt: 'Help me write:\n\n' },
+  {
+    id: 'learn',
+    label: 'Learn',
+    icon: GraduationCap,
+    prompt: 'Explain this so I can learn it:\n\n',
+  },
+  {
+    id: 'code',
+    label: 'Code',
+    icon: Brackets,
+    prompt: 'Help with this code:\n\n```\n\n```',
+  },
+  {
+    id: 'life',
+    label: 'Life stuff',
+    icon: Home,
+    prompt: "I'd like perspective on a life situation:\n\n",
+  },
+]
+
 interface ClaudeChatInputProps {
   onSendMessage: (data: ChatSendPayload) => void
   disabled?: boolean
@@ -353,6 +380,24 @@ export function ClaudeChatInput({
       handleSend()
     }
   }
+
+  const applyQuickAction = useCallback(
+    (prompt: string) => {
+      if (disabled) return
+      setMessage((prev) => {
+        const t = prev.trim()
+        return t ? `${t}\n\n${prompt}` : prompt
+      })
+      window.setTimeout(() => {
+        const el = textareaRef.current
+        if (!el) return
+        el.focus()
+        const len = el.value.length
+        el.setSelectionRange(len, len)
+      }, 0)
+    },
+    [disabled]
+  )
 
   const hasContent =
     Boolean(message.trim()) || files.length > 0 || pastedSnippets.length > 0
@@ -487,8 +532,30 @@ export function ClaudeChatInput({
       />
 
       <p className="mt-4 text-center text-xs text-white/40">
-        AI can make mistakes. Please check important information. Model UI is local — the{' '}
-        server picks the Groq model.
+        AI can make mistakes. Please check important information.
+      </p>
+
+      <div
+        className="mt-3 flex flex-wrap items-center justify-center gap-2 px-1"
+        role="toolbar"
+        aria-label="Quick prompts"
+      >
+        {QUICK_ACTIONS.map(({ id, label, icon: Icon, prompt }) => (
+          <button
+            key={id}
+            type="button"
+            disabled={disabled}
+            onClick={() => applyQuickAction(prompt)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/18 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white/82 shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition hover:border-white/28 hover:bg-white/14 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <Icon className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <p className="mt-3 text-center text-[11px] text-white/28">
+        Model UI is local — the server picks the Groq model.
       </p>
     </div>
   )
