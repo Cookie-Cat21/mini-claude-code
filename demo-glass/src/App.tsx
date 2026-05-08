@@ -1,4 +1,5 @@
 import { AppleStyleCarousel } from './components/AppleStyleCarousel'
+import { ChatPanel } from './components/ChatPanel'
 import { GlassSurface } from './components/GlassSurface'
 import { MeshBackdrop } from './components/MeshBackdrop'
 
@@ -27,6 +28,9 @@ function App() {
             </a>
             <a className="transition hover:text-white" href="#stack">
               Stack
+            </a>
+            <a className="transition hover:text-white" href="#chat">
+              Chat
             </a>
           </nav>
           <a
@@ -73,6 +77,10 @@ function App() {
 
         <section id="showcase" className="mb-20 w-full scroll-mt-28">
           <AppleStyleCarousel />
+        </section>
+
+        <section className="mb-20 w-full flex justify-center">
+          <ChatPanel />
         </section>
 
         <section
