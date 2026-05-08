@@ -1,4 +1,3 @@
-import { LobeHub } from '@lobehub/icons'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Bot, CheckCircle2, Code2, Sparkles, UserRound } from 'lucide-react'
 import { GlassSurface } from './GlassSurface'
@@ -159,11 +158,7 @@ export function MiniCodeChat() {
         <div className="relative flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 md:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/12 bg-white/[0.08] shadow-[0_1px_0_rgba(255,255,255,0.12)_inset]">
-              <LobeHub.Combine
-                size={30}
-                type="color"
-                className="drop-shadow-md drop-shadow-black/30 [&_svg]:flex-none"
-              />
+              <Bot className="h-5 w-5 text-violet-100/90 drop-shadow-md" aria-hidden />
             </div>
             <div className="min-w-0 text-left">
               <h2 className="truncate text-sm font-semibold tracking-tight text-white/92">
