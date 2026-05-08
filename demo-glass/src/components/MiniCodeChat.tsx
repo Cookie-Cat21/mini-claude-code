@@ -5,12 +5,12 @@ import { GlassSurface } from './GlassSurface'
 import {
   ClaudeChatInput,
 } from './ClaudeChatInput'
+import { LargePromptPlan } from './LargePromptPlan'
 import {
-  LargePromptPlan,
   createPromptPlan,
   shouldCreatePromptPlan,
   type PromptPlan,
-} from './LargePromptPlan'
+} from './largePromptPlanData'
 import { formatFileSize, type ChatSendPayload } from './chatComposerTypes'
 
 type ChatMsg = { role: 'user' | 'assistant'; content: string; plan?: PromptPlan }
@@ -117,8 +117,11 @@ export function MiniCodeChat() {
         }
         if (Array.isArray(data.messages)) {
           setMessages(addPlansToMessages(data.messages))
-        } else if (data.response) {
-          setMessages((current) => [...current, { role: 'assistant', content: data.response }])
+        } else {
+          const response = data.response
+          if (typeof response === 'string') {
+            setMessages((current) => [...current, { role: 'assistant', content: response }])
+          }
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Request failed')
