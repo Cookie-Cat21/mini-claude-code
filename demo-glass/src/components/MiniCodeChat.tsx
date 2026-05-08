@@ -5,9 +5,15 @@ import { GlassSurface } from './GlassSurface'
 import {
   ClaudeChatInput,
 } from './ClaudeChatInput'
+import { LargePromptPlan } from './LargePromptPlan'
+import {
+  createPromptPlan,
+  shouldCreatePromptPlan,
+  type PromptPlan,
+} from './largePromptPlanData'
 import { formatFileSize, type ChatSendPayload } from './chatComposerTypes'
 
-type ChatMsg = { role: 'user' | 'assistant'; content: string }
+type ChatMsg = { role: 'user' | 'assistant'; content: string; plan?: PromptPlan }
 
 const EMPTY_PROMPTS = [
   'Debug a failing API response',
@@ -73,6 +79,15 @@ export function MiniCodeChat() {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const sendingRef = useRef(false)
+  const promptPlansRef = useRef(new Map<string, PromptPlan>())
+
+  const addPlansToMessages = useCallback((incomingMessages: ChatMsg[]) => {
+    return incomingMessages.map((message) => {
+      if (message.role !== 'user') return message
+      const plan = promptPlansRef.current.get(message.content)
+      return plan ? { ...message, plan } : message
+    })
+  }, [])
 
   const onSendMessage = useCallback(
     async (payload: ChatSendPayload) => {
@@ -83,6 +98,9 @@ export function MiniCodeChat() {
       try {
         const text = await buildNewMessage(payload)
         if (!text) return
+        const plan = shouldCreatePromptPlan(text) ? createPromptPlan(text) : undefined
+        if (plan) promptPlansRef.current.set(text, plan)
+        setMessages((current) => [...current, { role: 'user', content: text, plan }])
 
         const res = await fetch(chatUrl, {
           method: 'POST',
@@ -98,7 +116,12 @@ export function MiniCodeChat() {
           throw new Error(data.detail ?? `HTTP ${res.status}`)
         }
         if (Array.isArray(data.messages)) {
-          setMessages(data.messages)
+          setMessages(addPlansToMessages(data.messages))
+        } else {
+          const response = data.response
+          if (typeof response === 'string') {
+            setMessages((current) => [...current, { role: 'assistant', content: response }])
+          }
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Request failed')
@@ -107,7 +130,7 @@ export function MiniCodeChat() {
         setPending(false)
       }
     },
-    [chatUrl, messages]
+    [addPlansToMessages, chatUrl, messages]
   )
 
   return (
@@ -200,6 +223,7 @@ export function MiniCodeChat() {
                     {m.role === 'user' ? 'You' : 'Assistant'}
                   </span>
                   <div className="whitespace-pre-wrap leading-6">{m.content}</div>
+                  {m.plan ? <LargePromptPlan plan={m.plan} /> : null}
                 </div>
                 {m.role === 'user' ? (
                   <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-violet-200/18 bg-violet-300/12">
