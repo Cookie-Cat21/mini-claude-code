@@ -410,9 +410,9 @@ export function ClaudeChatInput({
       onDrop={onDrop}
     >
       <div
-        className="relative z-10 mx-2 flex cursor-text flex-col items-stretch rounded-2xl border border-white/15 bg-zinc-900/85 shadow-[0_0_15px_rgba(0,0,0,0.35)] transition-all duration-200 focus-within:border-white/25 focus-within:shadow-[0_0_25px_rgba(0,0,0,0.45)] hover:shadow-[0_0_20px_rgba(0,0,0,0.4)] md:mx-0"
+        className="relative z-10 mx-2 flex cursor-text flex-col items-stretch overflow-hidden rounded-[1.65rem] border border-white/14 bg-[#101016]/82 shadow-[0_24px_80px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-2xl transition-all duration-200 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/35 before:to-transparent focus-within:border-violet-200/28 focus-within:shadow-[0_28px_90px_rgba(0,0,0,0.45),0_0_0_1px_rgba(196,181,253,0.12)] hover:border-white/20 md:mx-0"
       >
-        <div className="flex flex-col gap-2 px-3 pt-3 pb-2">
+        <div className="flex flex-col gap-2 px-3.5 pt-3.5 pb-3">
           {files.length > 0 || pastedSnippets.length > 0 ? (
             <div className="custom-scrollbar flex gap-3 overflow-x-auto px-1 pb-2">
               {pastedSnippets.map((s) => (
@@ -435,7 +435,7 @@ export function ClaudeChatInput({
           ) : null}
 
           <div className="relative mb-1">
-            <div className="custom-scrollbar max-h-96 min-h-[2.5rem] w-full overflow-y-auto pl-1 font-sans break-words transition-opacity duration-200">
+            <div className="custom-scrollbar max-h-96 min-h-[2.65rem] w-full overflow-y-auto px-1 font-sans break-words transition-opacity duration-200">
               <textarea
                 ref={textareaRef}
                 value={message}
@@ -445,19 +445,19 @@ export function ClaudeChatInput({
                 placeholder="How can I help you today?"
                 rows={1}
                 disabled={disabled}
-                className="block w-full resize-none overflow-hidden border-0 bg-transparent py-0 text-[16px] leading-relaxed font-normal text-white antialiased outline-none placeholder:text-white/35 disabled:opacity-45"
+                className="block w-full resize-none overflow-hidden border-0 bg-transparent py-0.5 text-[16px] leading-relaxed font-normal text-white antialiased outline-none placeholder:text-white/42 disabled:opacity-45"
                 style={{ minHeight: '1.5em' }}
               />
             </div>
           </div>
 
-          <div className="flex w-full items-center gap-2">
+          <div className="flex w-full items-center gap-2 border-t border-white/[0.07] pt-2">
             <div className="relative flex min-w-0 flex-1 shrink items-center gap-1">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={disabled}
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white/45 transition-colors duration-200 hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-45"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white/50 transition-colors duration-200 hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-45"
                 aria-label="Attach files"
               >
                 <Plus className="h-5 w-5" />
@@ -468,9 +468,9 @@ export function ClaudeChatInput({
                   type="button"
                   onClick={() => setIsThinkingEnabled((v) => !v)}
                   disabled={disabled}
-                  className={`group relative flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 active:scale-95 disabled:opacity-45 ${
+                  className={`group relative flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-45 ${
                     isThinkingEnabled
-                      ? 'bg-violet-500/20 text-violet-300'
+                      ? 'bg-violet-400/18 text-violet-100 ring-1 ring-violet-200/20'
                       : 'text-white/45 hover:bg-white/10 hover:text-white'
                   }`}
                   aria-pressed={isThinkingEnabled}
@@ -499,10 +499,10 @@ export function ClaudeChatInput({
                 type="button"
                 onClick={handleSend}
                 disabled={!hasContent || disabled}
-                className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors active:scale-95 ${
+                className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-all active:scale-95 ${
                   hasContent && !disabled
-                    ? 'bg-violet-500 text-white shadow-md hover:bg-violet-400'
-                    : 'cursor-default bg-violet-500/30 text-white/50'
+                    ? 'bg-gradient-to-b from-violet-400 to-violet-600 text-white shadow-[0_8px_22px_rgba(124,58,237,0.35)] hover:brightness-110'
+                    : 'cursor-default bg-white/[0.08] text-white/34'
                 }`}
                 aria-label="Send message"
               >
@@ -514,7 +514,7 @@ export function ClaudeChatInput({
       </div>
 
       {isDragging ? (
-        <div className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-violet-400/80 bg-zinc-950/90 backdrop-blur-sm">
+        <div className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center rounded-[1.65rem] border-2 border-dashed border-violet-300/80 bg-zinc-950/88 backdrop-blur-md">
           <Archive className="mb-2 h-10 w-10 animate-bounce text-violet-400" />
           <p className="font-medium text-violet-300">Drop files to upload</p>
         </div>
@@ -531,7 +531,7 @@ export function ClaudeChatInput({
         }}
       />
 
-      <p className="mt-4 text-center text-xs text-white/40">
+      <p className="mt-4 text-center text-xs text-white/38">
         AI can make mistakes. Please check important information.
       </p>
 
@@ -546,7 +546,7 @@ export function ClaudeChatInput({
             type="button"
             disabled={disabled}
             onClick={() => applyQuickAction(prompt)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/18 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white/82 shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition hover:border-white/28 hover:bg-white/14 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/14 bg-white/[0.07] px-3.5 py-1.5 text-xs font-medium text-white/76 shadow-[0_1px_0_rgba(255,255,255,0.08)_inset,0_10px_28px_rgba(0,0,0,0.16)] backdrop-blur-xl transition hover:border-violet-200/28 hover:bg-violet-300/10 hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
           >
             <Icon className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
             {label}
@@ -554,7 +554,7 @@ export function ClaudeChatInput({
         ))}
       </div>
 
-      <p className="mt-3 text-center text-[11px] text-white/28">
+      <p className="mt-3 text-center text-[11px] text-white/30">
         Model UI is local — the server picks the Groq model.
       </p>
     </div>

@@ -1,5 +1,6 @@
 import { LobeHub } from '@lobehub/icons'
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { AlertTriangle, Bot, CheckCircle2, Code2, Sparkles, UserRound } from 'lucide-react'
 import { GlassSurface } from './GlassSurface'
 import {
   ClaudeChatInput,
@@ -7,6 +8,12 @@ import {
 import { formatFileSize, type ChatSendPayload } from './chatComposerTypes'
 
 type ChatMsg = { role: 'user' | 'assistant'; content: string }
+
+const EMPTY_PROMPTS = [
+  'Debug a failing API response',
+  'Explain unfamiliar code',
+  'Draft tests for a component',
+]
 
 function apiBase(): string {
   const raw = import.meta.env.VITE_CHAT_API_BASE as string | undefined
@@ -106,45 +113,116 @@ export function MiniCodeChat() {
   return (
     <section
       id="chat"
-      className="flex w-full max-w-2xl min-h-0 flex-1 flex-col justify-center gap-5"
+      className="flex w-full max-w-3xl min-h-0 flex-1 flex-col justify-center gap-5"
       aria-label="Chat"
     >
-      <GlassSurface className="flex max-h-[min(48dvh,26rem)] min-h-[14rem] flex-col gap-3 overflow-hidden p-4 md:p-5">
-        <div className="flex shrink-0 items-center gap-3 border-b border-white/10 pb-3">
-          <LobeHub.Combine
-            size={34}
-            type="color"
-            className="shrink-0 drop-shadow-md drop-shadow-black/30 [&_svg]:flex-none"
-          />
-          <h2 className="text-lg font-semibold tracking-tight text-white/90">Chat</h2>
+      <div className="space-y-3 text-center">
+        <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.07] px-3 py-1 text-xs font-medium text-white/70 shadow-[0_1px_0_rgba(255,255,255,0.12)_inset] backdrop-blur-xl">
+          <Sparkles className="h-3.5 w-3.5 text-violet-200" aria-hidden />
+          Local model UI
         </div>
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto custom-scrollbar text-sm">
+        <div className="space-y-2">
+          <h1 className="text-balance text-3xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
+            Ask anything about code.
+          </h1>
+          <p className="mx-auto max-w-xl text-sm leading-6 text-white/50 sm:text-base">
+            A focused glass workspace for debugging, learning, reviewing, and shipping with AI.
+          </p>
+        </div>
+      </div>
+
+      <GlassSurface className="relative flex max-h-[min(50dvh,27rem)] min-h-[17rem] flex-col overflow-hidden p-0">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/[0.08] to-transparent" />
+        <div className="relative flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 md:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/12 bg-white/[0.08] shadow-[0_1px_0_rgba(255,255,255,0.12)_inset]">
+              <LobeHub.Combine
+                size={30}
+                type="color"
+                className="drop-shadow-md drop-shadow-black/30 [&_svg]:flex-none"
+              />
+            </div>
+            <div className="min-w-0 text-left">
+              <h2 className="truncate text-sm font-semibold tracking-tight text-white/92">
+                Code companion
+              </h2>
+              <p className="truncate text-xs text-white/42">
+                Attach files, paste context, or start with a quick prompt.
+              </p>
+            </div>
+          </div>
+          <div className="hidden items-center gap-1.5 rounded-full border border-emerald-300/18 bg-emerald-400/8 px-2.5 py-1 text-xs font-medium text-emerald-100/75 sm:flex">
+            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+            Ready
+          </div>
+        </div>
+
+        <div className="custom-scrollbar relative min-h-0 flex-1 space-y-3 overflow-y-auto p-4 text-sm md:p-5">
           {messages.length === 0 ? (
-            <p className="py-8 text-center text-white/40">
-              Ask anything about code…
-            </p>
+            <div className="flex min-h-full flex-col items-center justify-center py-6 text-center">
+              <div className="mb-4 grid h-14 w-14 place-items-center rounded-3xl border border-white/12 bg-white/[0.07] shadow-[0_16px_50px_rgba(0,0,0,0.22)]">
+                <Code2 className="h-6 w-6 text-violet-100/90" aria-hidden />
+              </div>
+              <p className="text-base font-medium text-white/88">What are we building today?</p>
+              <p className="mt-1 max-w-sm text-sm leading-6 text-white/42">
+                Start from a question, attach code, or use one of the shortcuts below.
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                {EMPTY_PROMPTS.map((prompt) => (
+                  <span
+                    key={prompt}
+                    className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs text-white/58"
+                  >
+                    {prompt}
+                  </span>
+                ))}
+              </div>
+            </div>
           ) : (
             messages.map((m, i) => (
               <div
                 key={`${i}-${m.role}`}
-                className={
-                  m.role === 'user'
-                    ? 'ml-6 rounded-xl bg-white/12 px-3 py-2.5 text-white/95'
-                    : 'mr-6 rounded-xl bg-white/6 px-3 py-2.5 text-white/88'
-                }
+                className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <span className="mb-1 block text-[10px] uppercase tracking-wider text-white/38">
-                  {m.role}
-                </span>
-                <div className="whitespace-pre-wrap">{m.content}</div>
+                {m.role === 'assistant' ? (
+                  <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.07]">
+                    <Bot className="h-3.5 w-3.5 text-white/65" aria-hidden />
+                  </div>
+                ) : null}
+                <div
+                  className={
+                    m.role === 'user'
+                      ? 'max-w-[86%] rounded-[1.2rem] rounded-tr-md bg-gradient-to-br from-violet-400/24 to-fuchsia-400/16 px-4 py-3 text-white/95 shadow-[0_10px_28px_rgba(0,0,0,0.18)] ring-1 ring-white/12'
+                      : 'max-w-[86%] rounded-[1.2rem] rounded-tl-md border border-white/10 bg-white/[0.055] px-4 py-3 text-white/86 shadow-[0_10px_28px_rgba(0,0,0,0.16)]'
+                  }
+                >
+                  <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+                    {m.role === 'user' ? 'You' : 'Assistant'}
+                  </span>
+                  <div className="whitespace-pre-wrap leading-6">{m.content}</div>
+                </div>
+                {m.role === 'user' ? (
+                  <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-violet-200/18 bg-violet-300/12">
+                    <UserRound className="h-3.5 w-3.5 text-violet-100/80" aria-hidden />
+                  </div>
+                ) : null}
               </div>
             ))
           )}
           {pending ? (
-            <p className="text-sm text-white/45 italic">Thinking…</p>
+            <div className="flex items-center gap-2 text-sm text-white/48">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-violet-300" />
+              Thinking through your request...
+            </div>
           ) : null}
           {error ? (
-            <p className="text-sm text-red-300/95">{error}</p>
+            <div className="flex items-start gap-3 rounded-2xl border border-red-300/20 bg-red-500/10 px-4 py-3 text-left text-sm text-red-100/85">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-200" aria-hidden />
+              <div>
+                <p className="font-medium">Request failed</p>
+                <p className="mt-0.5 text-red-100/70">{error}</p>
+              </div>
+            </div>
           ) : null}
         </div>
       </GlassSurface>
