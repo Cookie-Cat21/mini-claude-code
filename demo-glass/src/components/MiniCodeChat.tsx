@@ -1,3 +1,4 @@
+import { LobeHub } from '@lobehub/icons'
 import { useCallback, useMemo, useState } from 'react'
 import { GlassSurface } from './GlassSurface'
 
@@ -55,6 +56,14 @@ export function MiniCodeChat() {
       aria-label="Chat"
     >
       <GlassSurface className="flex max-h-[min(85dvh,40rem)] min-h-[min(60dvh,28rem)] flex-col gap-4 p-5 md:p-6">
+        <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+          <LobeHub.Combine
+            size={34}
+            type="color"
+            className="shrink-0 drop-shadow-md drop-shadow-black/30 [&_svg]:flex-none"
+          />
+          <h2 className="text-lg font-semibold tracking-tight text-white/90">Chat</h2>
+        </div>
         <p className="text-xs text-white/45">
           {base ? (
             <>
